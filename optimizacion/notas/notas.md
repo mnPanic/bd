@@ -151,6 +151,7 @@ Para producir agregaciones hay dos operadores
 - **Stream aggregate**. Cuando tienen un agregado pero no hay group by (scalar
   aggregate) se implementan mediante stream. Si hay group by tienen que venir
   ordenados (indice clustered o sort)
+
 - **Hash aggregate**. Al igual que el hash join se implementa con el operador
   físico **hash match**.
 
@@ -180,7 +181,21 @@ Cuando se usa cada uno?
 
 ### Joins
 
-Tipos de joins
+Tipos de joins. 4 operadores físicos:
+
+- **Nested loops**: para cada row del top data set, hacer una búsqueda en el otro
+  para los valores que matchean (puede ser con un índice o sin)
+
+- **Hash match**: crea un hash table con las rows del top data set, que se probea
+  usando las rows del segundo para buscar los valores que coinciden.
+
+- **Merge join**: Leer información de ambos inputs simultáneamente y mergearlos,
+  joineando cada fila que matchea. Esto requiere que ambos inputs estén
+  ordenados en las columnas del join (i.e indexados con un índice clustered)
+
+- **Adaptive join**: de sql server 2017. Es nested loops + hash match, elige la
+  opción con el costo mínimo de runtime, cuando el número real de filas del top
+  input es conocido.
 
 > Merge y hash requieren que la junta tenga al menos un predicado basado en
 > operador de igualdad (i.e equijoin)
@@ -191,7 +206,9 @@ Tipos de joins
   del outer se usa una sola vez, mientras que el del inner se ejecuta una vez
   por cada registro del outer.
 
-  Es muy efectivo si el outer es chico y el inner grande pero indexado.
+  Es muy eficiente si el outer es chico y el inner es barato de buscar.
+  Usualmente para lograr esto se indexa el inner (de esa forma, a pesar de que
+  sea grande sigue siendo eficiente)
 
   ![](img/nested-loop-join.png)
 
@@ -234,3 +251,14 @@ Se usa para los having y los where
 Se puede usar merge, hash o concat
 
 Qué es más costoso, UNION o UNION ALL?
+
+### Estadísticas
+
+El optimizador en muchos casos usa estadísticas para tomar decisiones. Entre
+ellas está la estimación de *cardinalidad*, el número de valores diferentes, y
+cuantas ocurrencias hay de cada uno.
+
+Esto determina la **selectividad** de los datos. Si una columna es única, va a
+tener selectividad máxima. Y se degrada a medida que decrece el nivel de
+unicidad. Por ejemplo, una columna *género* probablemente tenga una selectividad
+baja (i.e poca variación)
