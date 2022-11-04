@@ -97,6 +97,9 @@ Tipos de acceso a datos en índice:
     necesaria desde el índice nonclustered.
 
 
+  Se dice que un predicado es SARGable (sarch argument) si el optimizador lo
+  puede usar en un Index Seek, por ej LIKE 'Duffy%' es pero '%Duffy' no.
+
 - **Key lookup** (Clustered)
     
   Ocurre en adición a un index seek (o scan a veces) cuando el índice no cubre
