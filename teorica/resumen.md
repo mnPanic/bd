@@ -814,13 +814,198 @@ El log tiene otros usos además de recovery,
 
 ## NoSQL
 
+Son bases de datos no relacionales, que fueron diseñadas para acomodar datos no
+estructurados (o semi). Suelen ser fáciles de escalar horizontalmente (agregar
+más máquinas)
+
+Cuando estoy llegando al límite de capacidad, tengo dos alternativas (no
+excluyentes, pueden estar combinadas)
+
+- **Replicación**: Copiar más datos entre servidores. Usa una arquitectura
+  master-slave, en donde solo master hace lectura y el resto hacen escritura.
+- **Fragmentación**: Fragmentar en distintos servidores
+  
+  Divido mis datos en diferentes servidores. Tiene que haber algo que me diga
+  qué va en donde. Dos tipos:
+
+  - Vertical: Mando distintas columnas a servidores distintos. Hay que duplicar
+    la PK para poder hacer las juntas.
+  
+  - Horizontal: Se suele llamar **sharding**. Parto las filas según el valor de
+    algún campo. Se trata de que los fragmentos estén balanceados.
+
+Características de bases NoSQL
+
+- No tienen esquema
+  - No se pueden hacer consultas complejas con un lenguaje unificado y provisto
+    la DB (como es el caso de SQL)
+- Mecanismos sencillos de replicación
+- Interfaces sencillas, limitados 
+- Pueden almacenar grandes volúmenes de datos
+- Cumplen con BASE y no ACID.
+
+### BASE
+
+- **Basic Availability**: Garantiza disponibilidad según el teorema CAP
+  
+  Las bases de datos NoSQL toman un acercamiento diferente a las relacionales.
+  En vez de tener una única copia de la DB y centrarse en tolerancia a fallas
+  (logging), distribuyen los datos en muchas copias con un alto grado de
+  replicación. Si sucede una falla, no necesariamente afecta a toda la DB.
+
+- **Soft State**: el estado de la DB puede cambiar a lo largo del tiempo, aún
+  sin intervención externa. Se debe a la consistencia eventual.
+
+  En ACID la consistencia implica una única "versión" de cada dato. En cambio,
+  en BASE la consistencia es responsabilidad de los devs, y no es administrada
+  por la DB.
+
+- **Eventual Consistency**: El sistema va a ser consistente a lo largo de
+  tiempo, siempre que durante él no reciba inputs nuevos.
+  
+  Cuando hago una modificación, puedo decir a cuantos
+  modifico. El resto en algún momento recibe la actualización (via gossip)
+
+  > NoSQL aplica bien cuando no necesitás si o si ver la última versión de un
+  > dato
+
+  Los datos deben converger a un único estado consistente en algún momento del
+  futuro. No hay garantías de en que momento va a ocurrir eso.
+
+### Teorema CAP
+
+![](img/nosql/cap.png)
+
+Si tengo una DB distribuida y hay alguna falla, a lo sumo puedo garantizar 2/3
+de CAP. Cualquier sistema que comparta datos a través de una red puede tener a
+lo sumo dos de tres propiedades.
+
+- **Consistency** (Consistencia) equivalente a tener una única copia de los
+  datos
+
+  Todos los nodos del sistema ven exactamente los mismos valores de los datos en
+  el mismo momento del tiempo. Si hacemos un read sobre un sistema consistente,
+  tiene que retornar el valor del write más reciente. Y todos los nodos tienen
+  que leer el mismo valor.
+
+- **Availability** (Alta disponibilidad) de los datos para modificaciones
+  
+  En un sistema distribuido asegura que está operacional todo el tiempo. Cada
+  solicitud retorna una respuesta (y no un error) independientemente del estado
+  individual de un nodo.
+
+- **Partition tolerance** (Tolerancia a las particiones) (de red)
+
+  Asegura que el sistema no falla, independientemente de si los mensajes se
+  pierden o se retrasan o se cae algún nodo del sistema.
+
+  *es una necesidad en sistemas distribuidos*. Se hace posible replicando datos
+  en distintos nodos y redes.
+
+Diferentes implementaciones
+
+![](img/nosql/cap-aplicado.png)
+
+> Como las bases NoSQL tienen consistencia eventual, aseguran PA
+
+### Teorema PACELC
+
+Agrega el tiempo que un usuario está dispuesto a esperar
+
+### Tipos de consistencia
+
+- Read your writes
+- Session consistency
+- Monotonic reads consistency
+- Monotonic writes consistency
+- Consistency prefix
+
+### Tipos de bases NoSQL
+
 Tipos de bases NoSQL
 
-- Key value (redis)
-- Document based (dynamo)
-- Column family (cassandra)
-- Graph
-- Stream
+- **Key value store** (redis): la menor unidad de modelado es un par clave valor. Se
+  pueden guardar objetos diferentes en la misma base bajo distintas claves.
+- **Document store** (dynamo, mongodb): la menor unidad de modelado es un
+  documento
+  - Son parecidas a las key value, pero el documento está semi estructurado, no
+    se puede guardar cualquier cosa. Pueden tener formato XML, JSON, etc.
+  - Ejemplo: MongoDB. Hace sharding por un campo que se puede especificar.
+    Permite hacer MapReduce y queries adhoc (igualdad de campos, rangos, regex)
+- **Column family** (cassandra): guardan una familia de columnas.
+- **GraphDB** (Neo4J): modelan toda la estructura como un grafo
+  - Para ver problemas de distancias (para clusterizar gente x ej) es más fácil
+    con grafos en lugar de relacional, porque es recursivo. Por ej. el camino
+    entre dos personas
+- **Stream**
+  - Se pueden aplicar a medicina o control industrial (sensores)
+
+Desventajas:
+
+- No hay chequeos automáticos de integridad referencial ni restricciones. Se
+  tiene que encargar el programador.
+- Para poder hacer análisis sobre los datos probablemente tenés que pasarlos aa
+  una DB donde se le pueda dar estructura.
+
+Otros tipos de bases de datos,
+
+- **Cloud database**:  Es DB as a service (DBaaS). Hay relacionales y no
+  relacionales.
+  - Elástico a demanda
+  - No mantengo yo la info
+    - es costoso de mantener inhouse (centro de cómputo, gente)
+    - pero traer problemas de seguridad y posibles implicancias legales (como
+      las leyes que te fuerzan a que los datos estén en el mismo país).
+
+- **Multi tenant**: Una app que comparten distintos usuarios (empresas). Hay tres formas,
+  - Una DB entera por cliente
+  - Un esquema por cliente
+  - Unico esquema para todos
+    - Hay que hacer where por empresa, y problemas de seguridad.
+
+- **In memory DB**. Hay dos tipos
+  - Si se corta la luz, los datos se pierden (sirve para cache, como redis)
+  - Datos en memoria y un log para reconstruirlos por si falla (parecido a
+    journaling file systems)
+
+### Pros y Cons
+
+![](img/nosql/pros-cons.png)
+
+## Bases especiales
+
+- Espaciales
+- RDF (Resource description format). Es como prolog pero almacenado en una DB.
+
+## Bases distribuidas (relacionales)
+
+Como la replicación para no SQL con el teorema CAP pero ahora volvemos a
+relacionales.
+
+- **Paralelas**: Tengo 1 equipo, 1 DMBS, N procesadores.
+
+  Tengo un equipo multiprocesador, como aprovecho un solo DMBS para que use
+  todos los cores? Dos opciones. Inter operación e intra operación
+
+  - Inter operación: Asignar diferentes operaciones a diferentes procesadores.
+  - Intra operación: paralelizar una operación entre distintos procesadores
+    (tomar los distintos operadores del AR y mandarlos a distintos proc)
+
+- **Distribuidas**: Tengo N equipos con N DMBS, puede tener 1 o más procesadores
+  Dos versiones diferentes.
+  - 1 modifica y las demás reciben (publish subscribe)
+  - Todos modifican
+
+  Opinión de ceci: Las BDs distribuidas están muertas
+
+## OLTP vs OLAP
+
+Problemas diferentes que tienen que resolver las bases de datos:
+
+- **OLTP** = Online transaction processing. Todo lo que vimos hasta ahora,
+  operativo, transacciones cortas.
+- **OLAP** = Online analytica processing. Hacer análisis sobre los datos,
+sumarizarlos, etc.
 
 ## Temas extra
 
