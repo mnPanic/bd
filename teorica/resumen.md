@@ -293,7 +293,123 @@ Hay consultas que podríamos querer hacer que no son expresables en LPO. Teorema
 
 ## Normalización
 
+Las **formas normales** son medidas de la calidad de un diseño en cuanto a la
+redundancia. La redundancia no es gratis. Tengo que mantener actualizadas todas
+las copias de los datos, lo que puede llevar a
+
+- Anomalías de inserción
+- Anomalías de eliminación
+- Anomalías de actualización
+
+> por ej hay una tabla que no está en 2FN que tiene todos los datos de los
+> empleados y los departamentos.
+>
+> - inserción: se quiere insertar un nuevo empleado y no tiene asignado (o no se
+> sabe) el departamento. Entonces hay que poner nulls. Y agregar un nuevo
+> empleado asociado a un depto requiere que los datos sean consistentes con el
+> resto de los empleados de ese depto (por ej. que no escriban diferente el
+> nombre)
+> - eliminación: si se elimina un empleado que es el único de un departamento,
+>   se pierde toda la info referida a él
+> - actualización: si se quiere cambiar por ej. el nombre del depto, hay que
+>   cambiarlo en todos los registros. Sino, hay inconsistencias.
+
+### Dependencias funcionales
+
+Para definir las formas normales usamos las *dependencias funcionales*. Son una
+herramienta formal para el análisis de esquemas. Permiten detectar y describir
+los problemas que tienen que ver con redundancia.
+
+Un conjunto determina funcionalmente a otro si en un conjunto de tuplas
+coinciden en un atributo entonces tienen qeu coincidir en otro. Se analizan
+sobre la misma tabla. Representan la *semántica*.
+
+$$X \rightarrow Y \text{ si } \forall t_1, t_2\ t_1[x] = t_2[x] \Rightarrow t_1[Y]
+= t_2[Y]$$
+
+Por ejemplo, codigo de departamento => nombre de departamento, dni => nombre.
+Para determinarlas tenemos que tener conocimiento del negocio.
+
+Propiedades:
+
+- Es reflexiva
+- No es simétrica
+  - Dos alumnos pueden tener mismo nombre pero distinta LU
+- No es asimétrica
+  - LU -> DNI y DNI -> LU pero son diferentes
+- Es transitiva
+
+### Claves
+
+- Una **super clave** (SK) de una relación R es un subconjunto de atributos S
+  tales que no hay dos tuplas que tienen los mismos valores para los atributos
+  de S (i.e no hay $t_1, t_2 \in R$ tales que $t_1(S) = t_2(S)$)
+- Una **clave** (K) es una SK minimal (si se saca un atributo, deja de ser SK)
+- Las **clave candidatas** (CK o CC) son todas las claves K de un esquema
+  - La **clave primaria** (PK) es una CK que fue designada arbitrariamente como tal
+  - El resto son claves secundarias
+- Un atributo primo es alguno tal que pertenece a *alguna* CK de R
+
+Decimos que $X \subseteq R$ es una **clave candidata** de la relación R si
+
+- X -> R (unicidad)
+- $\not\exists Y \subseteq X$ tal que Y -> R (minimalidad)
+
 ### Formas normales
+
+Una DB tiene un buen diseño cuando tiene *baja redundancia* (hay veces que por
+temas de performance, puede ser necesaria).
+
+Formas normales:
+
+- 1 FN: Está en 1FN si todos sus atributos son atómicos (simples e indivisibles)
+  
+  > Por ej Empleado(codigo, nombre, {tel1, tel2, tel3}) no está en 1FN
+
+- 2 FN: R está en 2FN si está en 1ra y todos los atributos no primos dependen
+  **en forma completa** de la PK (no hay dependencias funcionales parciales)
+
+  > R(codArticulo, codProveedor, nombreArticulo, precio)
+  >
+  > Con clave (codArticulo, codProveedor). Con el código del artículo me alcanza
+  > para encontrar el nombre. No está en 2FN.
+
+- 3FN: R está en 3FN si todos los attrs no primos dependen de forma no
+  transitiva de la clave primaria (y está en 2da).
+
+  Los atributos que no son parte de la clave dependen **solo** de la clave
+  completa.
+
+  Definición alternativa: Un esquema R está en 3FN si, para toda dependencia
+  funcional *no trivial* X -> A de R, se cumple alguna de las siguientes conds
+
+  - X es SK de R
+  - A es atributo primo de R
+
+  (B -> A es trivial si B es un subconj de attrs de A)
+
+  Siempre se puede llevar a una relación a 3FN SPI SPDF
+
+- FNBC (4FN) (forma normal de Boyce Codd): Las columnas incluyendo las que
+  componen las claves candidatas no tienen que tener dependencias entre sí.
+
+  R está en FNBC si para toda DF no trivial X -> A de R, X es SK de R.
+
+  Siempre se puede llevar SPI, pero no siempre SPDF.
+
+  ![](img/normalizacion/ej-fnbc-vs-3fn.png)
+
+Y cómo solucionamos los problemas de redundancia? Descomponemos la relación en
+otras más chicas que no tienen las violaciones. Queremos que eso sea
+
+- **Sin pérdida de información** (SPI) o *lossless join*. La relación original
+  tiene que poder ser recuperada de la descomposición.
+- **Sin pérdida de dependencias funcionales** (SPDF). Cada DF se encuentra
+  representada en algún esquema de la descomp.
+
+Se pueden inferir dependencias funcionales a partir de otras con reglas de
+inferencia, los axiomas de armstrong. De esa forma se puede **clausurar** un
+conjunto de DFs infiriendo a partir de él. Esto se usa para normalizar.
 
 ## Optimización
 
