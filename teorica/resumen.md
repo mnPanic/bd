@@ -992,29 +992,134 @@ relacionales.
     (tomar los distintos operadores del AR y mandarlos a distintos proc)
 
 - **Distribuidas**: Tengo N equipos con N DMBS, puede tener 1 o más procesadores
+  Pueden ser homogeneas (mismo DMBS) o heterogeneas (diferente DMBS, mismo
+  modelo o diferente modelo de datos)
   Dos versiones diferentes.
   - 1 modifica y las demás reciben (publish subscribe)
   - Todos modifican
 
   Opinión de ceci: Las BDs distribuidas están muertas
 
+  Para hacer transacciones distribuidas hay protocolos, como 2PC (Two Phase
+  Commit)
+
 ## OLTP vs OLAP
 
 Problemas diferentes que tienen que resolver las bases de datos:
 
-- **OLTP** = Online transaction processing. Todo lo que vimos hasta ahora,
+- **OLTP**: Online transaction processing. Todo lo que vimos hasta ahora,
   operativo, transacciones cortas.
-- **OLAP** = Online analytica processing. Hacer análisis sobre los datos,
+- **OLAP**: Online analytica processing. Hacer análisis sobre los datos,
 sumarizarlos, etc.
+
+![](img/nosql/oltp-olap.png)
 
 ## Temas extra
 
 ### Big Data
 
+5 Vs que describen sus características
+
+- **Volumen** grande
+- **Variedad**: hay muchos formatos diferentes (importante en el contexto de una
+  DB)
+- **Velocidad**: el volumen incrementa rápido
+- **Valor**: cómo le saco valor a los datos?
+- **Veracidad**: calidad de los datos.
+
+Qué es que organización sea *data driven*? Que toman decisiones basándose en los
+datos. Forman parte del proceso de decisión, juegan un rol. Pero las personas no
+usan solo eso, y hay que modificarlos para poder hacer uso de ellos.
+
+Principales dimensiones:
+
+- Aspectos técnicos
+  - Data warehouse: Tengo varios sistemas distintos y quiero hacerlos confluir a
+    una viunificada de los datos. Fracasa porque se vuelve bottleneck del sistema.
+  - Data lake: Juntamos los datos y los tiramos a algún lugar. Pero termino no
+    pudiendo leerlos, que hace que mucha gente le llame "data swamp" (pantano)
+  - Data lakehouse: Lo mejor de ámbos mundos
+- Responsabilidad: quién se encarga de los datos?
+
+  Históricamente, la tarea era hecha por un único equipo de datos centralizado.
+  Trae problemas de escalabilidad.
+
+  Hoy: enfoque **Data mesh**. Los mismos dueños de los datos son los que los
+  disponibilizan para los demás. Principios
+
+  - Domain driven data ownership & architecturte: cada negocio prepara y dispone
+    sus datos para que los consuma el resto de la org.
+  
+    Es clave no proveer los datos directamente, sino esconder un poco la
+    complejidad (los datos tienen mucha)
+
+  - Data as a product. Características clave
+    - Descubrible
+      - Ideal: Data discovery: Herramientas para que las personas descubran de
+      forma propia los datos.
+    - Buscable
+    - Confiable
+    - Autodescriptivo
+    - Interoperable
+    - Seguro
+  - Self serve infrastracture as a platform. Proveer una infra común para que no
+    reinvente la rueda cada equipo.
+  - Federated computational governance. Sino, cada uno con su propio sistema.
+
+  Cambio de filosofía: los datos también son un problema de los equipos de
+  desarrollo.
+
+- Uso: los usuarios de los datos pueden ser internos o externos.
+  
+Metadata: un regalo a mi mismo dentro de 10 años. Clave para entender los datos.
+
+Antes se hacía ETL (Extract, transform, load) pero ahora se hace ELT (extract,
+load, transform). Nadie se salva de amasar los datos, porque los sistemas
+no los guardan listos para consumir.
+
 ### Open Data
+
+Datos públicos en un formato legible por una computadora. Se publican con dos
+finalidades transparencia y generación de servicios para empresas
+
+Publican: Estados, organizmos internacionales, empresas
+
+Consumidores: Periodismo (data driven journalism), ONGs, emprendedores, académicos
 
 ### Data Mining
 
+"Torturar a los datos hasta que hablen".
+
+Previo al data mining hay que integrarlos y laburarlos. Es muy importatne
+entender los datos para saber qué tener en cuenta => equipos
+interdisciplinarios.
+
+Hay dos grupos
+
+- Supervisado: Aprende de ejemplos
+  - Redes neuronales
+  - Árboles de decisión
+  - Regresiones
+- No supervisado. Te doy los datos y me contás lo que ves
+  - Clustering
+  - Reglas de asociación
+
+![](img/nosql/sup-unsup.png)
+
+Tener en cuenta los **outliers**: valores que se van de lo normal.
+
+> Ejemplo: Luis miguel le compra un anillo a la novia por muchísima plata. Te
+> rompe todas las estadísticas. Para evitar que genere problemas puedo usar
+> cuartiles.
+
+Tienen dos fuentes:
+
+- Cosas *realmente* fuera de lo normal
+- Errores
+
+Pero no hay que descartarlos porque en las anomalías se pueden encontrar
+problemas, por ej. en AFIP para fraude ("o es YPF, o es fraude").
+
 ### Gobierno de datos
 
-
+Determina quien tiene acceso a los datos y qué puede hacer con ellos
