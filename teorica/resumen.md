@@ -411,17 +411,416 @@ Se pueden inferir dependencias funcionales a partir de otras con reglas de
 inferencia, los axiomas de armstrong. De esa forma se puede **clausurar** un
 conjunto de DFs infiriendo a partir de él. Esto se usa para normalizar.
 
+## XML
+
+TODO, no creo que importe
+
+## Mapeo objeto relacional
+
+TODO, no lo vimos con cecilia 2c2022
+
 ## Optimización
 
-### Parte física
+Cuando ejecuto una query SQL, el motor hace varios pasos,
+
+- Parsing sintáctico de la query
+- Validación semántica (si existen las tablas, etc.)
+- Optimización: El optimizador arma el AR, árboles alternativos, y elige uno.
+  - Para ello usa las propiedades de AR, y vemos cual podemos usar para
+    disminuir costo.
+
+  > Las BD permiten visualizar el plan de ejecución que se usó. Esto permite ver
+    si las optimizaciones que uno puede hacer como desarrollador a las queries
+    tienen impacto. Si el plan resultó igual, no cambió en nada.
+- El motor de ejecución se encarga de ejecutarlo
+
+La BD está organizada físicamente en *registros* (conjuntos de campos) y
+*tablas* (conjuntos de registros). Asumimos que los registros son de longitud
+fija (para simplificar las cuentas)
+
+El **factor de bloqueo** mide cuantos registros entran en un *bloque* (que es la
+unidad de transferencia entre el SO y el disco)
+
+$$FB_R = \lfloor{B/L_R}\rfloor$$
+
+donde,
+
+- $FB_R$ es el factor de bloqueo de un registro R
+- B es el tamaño de un bloque
+- $L_R$ es la longitud del registro
+
+Una tabla se puede organizar como
+
+- **heap**: Cuando no hay clustered index definido
+- **arbol B**: Cuando hay clustered index definido
+
+### Índices
+
+Los **índices** son estructuras independientes de los datos que sirven para
+acelerar las búsquedas. Hay dos tipos,
+
+- **Clustered index**: está ordenado igual que la tabla. Dicta el orden físico
+  de los datos en una tabla. Es un árbol B en donde las hojas son las filas de
+  datos, ordenadas según las columnas del clustered index key.
+
+  Un clustered index no es una copia de la tabla, *es* la tabla con un árbol B
+  encima, para que esté ordenada por la clustering key. Por esto se puede tener
+  uno solo por tabla.
+
+  Es como el de la parte de adelante de un libro.
+
+- **NonClustered index**: como el de la parte de atrás de un libro, está
+  desordenado.
+
+  Están diseñados para mejorar la performance de queries críticas, frecuentes y
+  caras. Tiene la misma estructura de árbol B, pero las hojas no contienen las
+  filas, solamente la info de la clave del índice cluster (para poder hacer
+  seek) + la clustered index key (para poder ir ahí a buscar las rows, asumiendo
+  que la tabla es b tree) + columnas extra que agregamos con INCLUDE (por
+  conveniencia)
+
+  La estructura es similar a un clustered index, pero las hojas incluyen el
+  valor de la clave (para poder hacer seek en el índice) y el row id (para poder
+  volver a la tabla original y buscar todos los datos, suponiendo que es heap y
+  no b tree)
+
+  El row id,
+
+  - En heap tables representa la ubicación física del a página
+  - Para tablas con clustered index, representa el clustered index key de la fila.
+
+Tiene dos operaciones principales,
+
+- **Index Scan**: recorrer toda las hojas del indice
+- **Index Seek**: aprovechar la estructura del índice para recorrer solo las
+  hojas que necesita.
+
+Si una tabla tiene muchos índices, está mal diseñada.
+
+Suelen estar implementados con árboles B+ (son árboles balanceados como los
+binarios pero los nodos pueden tener más de dos hijos). También pueden
+ser hash tables.
+
+![](img/optimizacion/arbol-b.png)
+
+Cuales son los costos de búsqueda?
+
+| Tipo de archivo        | A = a                                         | A > a |
+| ---------------------- | --------------------------------------------- | ----- |
+| Sin índice (Heap File) | $B_R$                                         | =     |
+| Sorted File            | $\log_2(B_R) + \lceil \frac{T'}{FB_R} \rceil$ | =     |
+| Índice B+ Clustered    | $X + \lceil \frac{T'}{FB_R} \rceil$           | =     |
+| Índice B+ Unclustered  | $X + T'$                                      | =     |
+| Hash Index             | $MB \times B + T'$                            | $B_R$ |
+
+![](img/optimizacion/operaciones.png)
+![](img/optimizacion/parametros.png)
+
+T' = cantidad de registros que cumplen con determinada condición.
+
+para calcularlo, el motor puede usar estadísticas.
+
+### Joins
+
+Todos los joins se mapean a 4 operadores físicos.
+
+- **BNLJ** (Block nested loop join) sin índices
+  
+  Recorre todos contra todos.
+
+- **INLJ** (Index nested loop join)
+  
+  si estoy haciendo  R |x| S y sobre S tengo índice. Recorre R y para cada uno
+  indexa en S.
+
+- **SMJ** (sort merge join)
+
+  Ordena y después hace un merge.
+
+- **Hash merge join**
+
+  Puede hacer una tabla de hash en el momento para resolver el join.
+
+### Optimizador
+
+El optimizador realiza las siguientes tareas,
+
+- Recibe un AR
+- Genera el árbol canónico (sin optimización alguna, que respeta el orden de la
+  expresión)
+- Arma distintos planes de ejecución alternativos
+- Selecciona el mejor
+
+Para armar distintos planes de ejecución, usa propiedades de AR como
+conmutatividad. Hay también varias heurísticas,
+
+- resolver selecciones y proyecciones lo más cerca posible de lash ojas
+- Convertir los productos cartesianos en joins
+- Resolver primero los selects más selectivos (que filtran más)
+- Tomar en cuenta los índices existentes
+
+Usa estadísticas sobre los datos para calcular el T' para una query como `SUELDO
+>= 50.000`
+
+Ejemplo de árbol:
+
+![](img/optimizacion/ej-arbol.png)
 
 ## Transacciones
 
+Una **transacción** es un conjunto de operaciones físicas que tienen que
+comportarse atómicamente, como una sola operación lógica.
+
+Usamos una abstracción de las bases de datos en donde la cosa más chica es un
+*data item* (puede ser un registro, tabla, etc.) a la cual le hacemos read y
+write.
+
+La responsabilidad de un DBMS al recibir una transacción es
+
+- o bien que todas las operaciones de la trx sean ejecutadas exitosamente y sus
+  resultados sean almacenados (**commit**)
+- o en caso contrario que ninguna operación tenga efecto sobre la BD (**abort**)
+
+Si una transacción falla antes de hacer el commit, el DBMS tiene que *deshacer*
+los cambios realizados por ella.
+
+Razones para hacer abort,
+
+- System crash, falla en disco, problemas físicos o catastróficos
+- Falla en la transacción o sistema (excepción)
+- Ejecución de control de concurrencia (a veces puede abortar transacciones por
+  violar la serialización o por deadlock, se reinician más tarde)
+
+Las transacciones tienen 5 propiedades deseables para ejecutar métodos de
+control de concurrencia y recovery. ACID
+
+- **Atomicidad** (Atomicity): la transacción se comporta como una unidad
+  atómica. O se ejecutan todas sus operaciones o no se ejecuta ninguna.
+
+  > Responsabilidad del subsistema de recovery
+
+- **Consistency preservation** (Consistencia): todos los constraints que se
+  cumplan previo al commit siguen cumpliendose luego de él (pk, check
+  constraints, etc.). La BD se mueve de un estado consistente a otro consistente
+
+  > Responsabilidad de recovery
+
+- **Isolation** (Aislamiento). La ejecución de una transacción no interfiere con
+  la de otra que se ejecute de forma concurrente. Tienen que hacer parecer que
+  se ejecutan de forma aislada de las otras, incluso si se están ejecutando
+  concurrentemente.
+  
+  > Responsabilidad del subsistema de control de concurrencia
+
+- **Durability** (Durabilidad): Si una trx hace commit, está persistida en la
+  DB. No se pueden perder a causa de ningún fallo.
+
+  > Responsabilidad del subsistema de recovery
+
 ## Control de concurrencia
+
+Como pueden ejecutarse varias transacciones concurrentemente, es posible que
+haya condiciones de carrera
+
+=> **es necesario algún mecanismo de control de concurrencia**
+
+Las operaciones que dan problemas son lecturas y escrituras sobre el mismo data
+item en distintas transacciones.
+
+En general, el nivel de concurrencia es bajo (y por eso son buenos los esquemas
+optimistas)
+
+### Problemas posibles
+
+- Lost update: el clásico que vemos en SO
+
+  ![](img/trx/lost-update.png)
+
+- Dirty read: read de un write que hizo abort.
+
+  ![](img/trx/dirty-read.png)
+
+- Incorrect summary problem: leyó dos valores que si hubieran funcionado en
+  forma aislada no hubieran existido. Lee una foto de la DB que nunca fue
+  válida.
+
+- Unrepeatable read problem (lee dos veces el mismo item, pero en el medio
+  alguien lo modifica y recibe valores diferentes para el mismo item)
+
+### Schedules
+
+Formalmente, decimos que las transacciones son un órden parcial compuesto por
+operaciones r_i(x), w_i(x), c_i y a_i. Es importante el orden entre reads y
+writes del mismo item pero no con diferentes items. Los commits y aborts van al
+final.
+
+Una **historia** o plan o schedule es un ordenamiento de un conjunto de
+transacciones. Las operaciones de cada transacción tienen que respetar su orden.
+
+Decimos que dos operaciones **entran en conflicto** si son sobre el mismo item,
+distintas transacciones y al menos una es un write.
+
+Dos historias son **equivalentes** si resuelven las operaciones en conflicto en
+el mismo orden.
+
+Una historia es **serializable** si es equivalente a una serial. (resuelve los
+conflictos de formas que no generan problemas.)
+
+Por qué es importante esto? Si existe una manera de ejecutarlas concurrentemente
+y obtener el mismo resultado que si fueran ejecutadas en orden, mejoramos la
+performance sin comprometer la correctitud de las operaciones y la consistencia
+de la BD.
+
+> Para hacer un scheduler de transacciones, hay que demostrar que sus salidas
+> son serializables.
+
+**Teorema de seriabilidad:**
+
+- Construimos el grafo de seriabilidad (arco de una transacción a otra si tienen
+  operaciones que entran en conflicto)
+
+- Si es acíclico, es serializable, y los órdenes seriales equivalentes son todos
+  los ordenes topológicos del grafo.
+
+Ejemplo de grafo:
+
+![](img/trx/seriabilidad-ex.png)
+
+### Tipos de historias (Recuperabilidad)
+
+Decimos que **una transacción Ti lee de otra Tj** si lee un ítem X que Tj
+escribió antes de que aborte.
+
+- Una historia es **recuperable** (RC) si las transacciones solo hacen commit
+  luego de que lo hagan todas las transacciones de las que leyeron.
+- Una historia **evita aborts en cascada** (ACA) si todas las transacciones leen
+  valores solo de transacciones commiteadas.
+
+  Un abort en cascada sería si T1 lee de T2, y T2 hace abort, T1 también tiene
+  que abortar (porque leyó un valor que "nunca existió" por atomicidad)
+
+- Una historia es **estricta** (ST) si las transacciones no pueden **escribir**
+  ni leer antes de que la transacción que lo escribió previamente haga commit u abort.
+
+Relación entre ellas: ST $\subseteq$ ACA $\subseteq$ RC
+
+y son conceptos ortogonales a seriabilidad.
+
+### Mecanismos de control de concurrencia
+
+Cuando llega una operación de una transacción, el scheduler puede rechazarla,
+procesarla o demorarla.
+
+- **Pesimistas**
+  - **Lock binario** (mutex de siempre)
+  - **Shared lock** (RW lock, compartido para reads y exclusivo para writes)
+  - Hace falta un protocolo para que los locks sean seriales. **Two phase
+    locking**. Hay una fase en donde se toman todos los locks y otra en donde se
+    liberan.
+
+    Asegura seriabilidad de conflictos pero no es libre de deadlocks ni aborts
+    en cascada.
+
+    Variaciones: estricto y riguroso (asegura RC y ACA pero puede haber
+    deadlocks), conservador (no puede haber deadlocks pero no asegura ST)
+  - Introducen el wait-for graph. Hay deadlock cuando tiene ciclos
+- **Optimistas**: Se basan en que la concurrencia suele ser baja, y los aborts
+  no suceden casi nunca. No hay locks
+  - **Timestamp**
+    - Cuando arranca cada transacción, se le asigna un timestamp que determina
+      orden serial que deberían tener
+    - Cuando quiero hacer una operación, veo si hay alguna más nueva que ya la
+      hizo, llevando a un comportamiento *físicamente irrealizable* (y hago
+      abort)
+      - **Read too late**. Cuando llega un read comparo con el max write. Si
+        escribió una transacción posterior, debería haber leido el valor
+        anterior -> read too late.
+      - **Write too late**: cuando llega un write tengo que comparar con el max
+        write y max read
+        - si hay un read de una transacción posterior, tenía que leer lo que
+          esta iba a escribir pero tardó mucho en escribir -> write too late
+        - Thomas write rule: si hubo un write por una transacción posterior, se
+          puede descartar el actual (siempre y cuando no haya un read en el
+          medio).
+
+  - **Timestamp multiversión**
+    - Guardan una versión de cada item por escritura.
+    - Cuando vas a leer, te devuelve la versión escrita por la transacción con
+      máximo timestamp menor al propio.
+    - Evitan read too late (porque leés la versión anterior y ya)
+    - No evitan write too late y no hay thomas write rule (siempre se crean las
+      versiones)
+
+### Niveles de aislamiento
+
+El **nivel de aislamiento** define el grado con el que una trx debe ser aislada
+de las modificaciones a los datos hechas por otras transacciones.
+
+Está determinada por los siguientes fenómenos
+
+- **Dirty read**: lectura de transacciones no commiteadas
+- **Non repeatable read**: leer el mismo dato dos veces y obtener valores
+  distintos, porque una transacción se metió en el medio y modificó el dato
+  antes de la segunda lectura.
+- **Phantom read**: la transacción re ejecuta la misma query pero el resultado
+  es distinto. Es un caso especial de non repeatable reads, en donde la otra
+  transacción no modifica los valores sino que inserta o borra tuplas.
+- **Lost update**: dos transacciones quieren escribir el mismo item
+  concurrentemente y una sobreescribe el update de la otra.
+
+Niveles de aislamiento:
+
+![](img/trx/isolation-levels.png)
 
 ## Recuperación (Logging)
 
+El **recovery manager** debe llevar registro del inicio y fin de las
+transacciones, sus reads o writes y sus commits u aborts. Para ello hace uso del
+**log** (o DBMS journal). Este le permite reestablecer el sistema ante fallos
+que afectan las transacciones
+
+Una transacción está en condiciones de hacer commit si todas sus operaciones
+fueron ejecutadas exitosamente Y los efectos de todas fueron guardados en el
+log.
+
+El recovery tiene que asegurar atomicidad, consistencia y durabilidad
+
+Tipos de recovery manager
+
+- Undo
+- Redo
+- Undo-Redo
+- No undo - No redo
+
+Puede haber *checkpoints*
+
+> La DB no graba a disco en el momento en el que se hace commit, sino que hay un
+> buffer de memoria. Cuando baja a memoria, hace checkpoint. Esto asegura la
+> durabilidad, porque las operaciones del log son idempotentes y se bajan a
+> disco antes de las operaciones.
+
+Sirven para no tener que mantener el log para siempre. Fuerza el almacenamiento
+físico de un estado consistente de la base de datos (flushea los datos dirty).
+También acorta el proceso de recovery: todas las entries que fueron hechas
+previas al checkpoint se pueden ignorar.
+
+- No quiescente: permite que entren nuevas transacciones durante el ckpt
+- Quiescente: **No** permite que entren nuevas transacciones durante el ckpt
+
+El log tiene otros usos además de recovery,
+
+- Backups (de la BD entera)
+- Analitica
+
 ## NoSQL
+
+Tipos de bases NoSQL
+
+- Key value (redis)
+- Document based (dynamo)
+- Column family (cassandra)
+- Graph
+- Stream
 
 ## Temas extra
 
