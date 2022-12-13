@@ -1,5 +1,55 @@
 # Resumen BD
 
+- [Resumen BD](#resumen-bd)
+  - [Bases de datos](#bases-de-datos)
+  - [MER / DER](#mer--der)
+    - [Datos tabulados](#datos-tabulados)
+    - [Entidades débiles](#entidades-débiles)
+    - [Especializaciones](#especializaciones)
+    - [Ternarias](#ternarias)
+    - [Agregaciones](#agregaciones)
+  - [Modelo relacional](#modelo-relacional)
+    - [Pasaje DER a MR](#pasaje-der-a-mr)
+  - [Lenguajes de consulta](#lenguajes-de-consulta)
+    - [AR (Álgebra Relacional)](#ar-álgebra-relacional)
+    - [CRT (Cálculo Relacional de Túplas)](#crt-cálculo-relacional-de-túplas)
+      - [Expresiones seguras](#expresiones-seguras)
+    - [Comparación de poder expresivo](#comparación-de-poder-expresivo)
+  - [Normalización](#normalización)
+    - [Dependencias funcionales](#dependencias-funcionales)
+    - [Claves](#claves)
+    - [Formas normales](#formas-normales)
+  - [XML](#xml)
+  - [Mapeo objeto relacional](#mapeo-objeto-relacional)
+  - [Optimización](#optimización)
+    - [Índices](#índices)
+    - [Joins](#joins)
+    - [Optimizador](#optimizador)
+  - [Transacciones](#transacciones)
+  - [Control de concurrencia](#control-de-concurrencia)
+    - [Problemas posibles](#problemas-posibles)
+    - [Schedules](#schedules)
+    - [Tipos de historias (Recuperabilidad)](#tipos-de-historias-recuperabilidad)
+    - [Mecanismos de control de concurrencia](#mecanismos-de-control-de-concurrencia)
+    - [Niveles de aislamiento](#niveles-de-aislamiento)
+  - [Recuperación (Logging)](#recuperación-logging)
+  - [NoSQL](#nosql)
+    - [BASE](#base)
+    - [Teorema CAP](#teorema-cap)
+    - [Teorema PACELC](#teorema-pacelc)
+    - [Tipos de consistencia](#tipos-de-consistencia)
+    - [Tipos de bases NoSQL](#tipos-de-bases-nosql)
+    - [Pros y Cons](#pros-y-cons)
+  - [Bases especiales](#bases-especiales)
+  - [Bases distribuidas (relacionales)](#bases-distribuidas-relacionales)
+  - [OLTP vs OLAP](#oltp-vs-olap)
+  - [Temas extra](#temas-extra)
+    - [Big Data](#big-data)
+    - [Open Data](#open-data)
+    - [Data Mining](#data-mining)
+    - [Gobierno de datos](#gobierno-de-datos)
+
+
 ## Bases de datos
 
 Es una colección de datos relacionados y organizados. Logicamente coherente, con
@@ -834,6 +884,15 @@ excluyentes, pueden estar combinadas)
   - Horizontal: Se suele llamar **sharding**. Parto las filas según el valor de
     algún campo. Se trata de que los fragmentos estén balanceados.
 
+    Este criterio idealmente debería ser el mismo para todas las tablas, para
+    poder tener búsquedas locales (si hago JOIN y está fragmentado en distintos
+    shards, va a tardar más)
+
+    > PERO no hace falta usar criterios unificados entre tablas que nunca se van
+    > a joinear. Ejemplo AFIP: partís por contribuyentes y empleados, podés
+    > fragmentar por lógicas diferentes porque no tienen puntos en común,
+    > entonces no pasa nada.
+
 Características de bases NoSQL
 
 - No tienen esquema
@@ -1122,8 +1181,11 @@ problemas, por ej. en AFIP para fraude ("o es YPF, o es fraude").
 
 ### Gobierno de datos
 
-Determina quien tiene acceso a los datos y qué puede hacer con ellos. Tiene que
-ver con la privacidad.
+Determina quien tiene acceso a los datos y qué puede hacer con ellos. Asegurar
+la calidad de cara a los usuarios.
+
+La **calidad** es la adecuación de los datos al uso. Habla de problemas o
+errores de calidad.
 
 Los datos son considerados **activos** de las empresas. Se pueden vender.
 Ejemplo: En american airlines vale más los datos del programa de pasajero
