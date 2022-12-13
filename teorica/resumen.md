@@ -1122,4 +1122,64 @@ problemas, por ej. en AFIP para fraude ("o es YPF, o es fraude").
 
 ### Gobierno de datos
 
-Determina quien tiene acceso a los datos y qué puede hacer con ellos
+Determina quien tiene acceso a los datos y qué puede hacer con ellos. Tiene que
+ver con la privacidad.
+
+Los datos son considerados **activos** de las empresas. Se pueden vender.
+Ejemplo: En american airlines vale más los datos del programa de pasajero
+frecuente que la valuación de la compañía
+
+No es un tema de sistemas, sino de toda la organización. La definición según
+DAMA (Data Management Association)
+
+- **Significado**
+  - Con los datos pasa lo mismo que con la [historia del
+    elefante](https://www.sloww.co/blind-men-elephant/), en donde según la
+    interpretación que se le de se pueden sacar conclusiones distintas.
+  - Es importante que el *significado* de los datos esté acordado. Que hablemos
+    lo mismo.
+  - No es tan importante la definición, o cual es el significado en sí, sino que
+    todos hablemos de lo mismo. Eso permite que podamos comparar.
+  - Tratar de que le lógica de los datos esté lejos de los usuarios
+    (abstraerlos) y cerca de donde se producen.
+  - ![](img/nosql/data-info-knowledge.png). Un ejemplo de *conocimiento* podría
+    el insight "las papas fritas se compran junto con la coca en el supermercado"
+- **Calidad**
+  - Hay muchos pre conceptos erróneos que tiene la gente.
+    - el hecho que los datos estén implica que estén completos (no)
+    - Tener todos los datos (no)
+    - Los datos valen para siempre (no)
+  - Ejemplos de problemas
+    - Tengo 3 bases de clientes y cada una tiene una dirección diferente, cual
+      es la válida?
+    - El 30% de los clientes cumple años el mismo día (acá Cecilia había contado
+      que esto había pasado y era porque un dev había puesto su cumpleaños como
+      default, y mucha gente no lo completaba)
+    - la dirección no se corresponde con la localidad, o la localidad con la
+      provincia, o la provincia con el código postal, etc.
+    - Tiene 12 años pero está casado
+    - Algunas cosas sospechosas, como que tiene 7 años y un nivel de estudios de
+      doctorado, o que gasta 2M por mes en tarjeta (anillo de luis miguel)
+  - Esta bueno tener más o menos una idea de qué número tienen que dar ciertas
+    queries, para cuando las ejecutemos saber si puede haber algo mal (por la
+    calidad) o no. Por ej. tirar un promedio y que de mucho más alto de lo que
+    debería.
+  - Tips:
+    - Unidad de medida
+    - Si algo tiene lista de valores, mostrarla
+    - Validar en la carga. Ahí es más fácil de corregir.
+  - No tirar outliers, son interesantes
+  - Ética: mis problemas de calidad de datos afectan a la vida de la gente?
+- **Arquitectura**
+- **Seguridad y privacidad**
+  - Anonimizar
+  - Ley de datos personales
+
+Roles en gobierno de datos
+
+- Chief data officer: el capo y responsable
+- Architect: el técnico
+- Administrator (por dominio): el de negocio que sabe de los datos
+- Steward: sabe ajustar la tuerca si algo no anda
+  - análisis forense si las cosas están mal
+- custodio: vela por las políticas de seguridad
