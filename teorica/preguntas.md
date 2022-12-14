@@ -1,5 +1,168 @@
 # Preguntas
 
+## Final 21/07/22 (Cecilia)
+
+- Qué parte del DBMS se encarga de garantizar aislamiento
+  - El módulo de control de concurrencia
+- Modelás una biblioteca con un DER, dar una interrelación 1-n y una n-m
+  - 1-n: Biblioteca libro (ejemplar)
+  - n-m: biblioteca libro (abstracto) (pero sería otro modelo), empleado?
+- Te daba una query en sql y había que escribirla en ar, dar el árbol canónico, dar 2 planes de ejecución y decir creo que una optimización que se pueda hacer si se tienen estadísticas sobre los datos
+- Para qué sirve el logging y explicar undo/redo
+  - Logging es el mecanismo que usa el recovery manager para hacer la
+    recuperación en caso de fallas
+  - UNDO/REDO es un tipo de logging en el cual los registros tienen el valor
+    previo y el valor que se quiere escribir. Esto permite hacer UNDO de las
+    transacciones incompletas, y REDO de las transacciones que estaban
+    commiteadas pero sus valores no estaban en disco.
+- Qué es gobierno de datos y su relación con calidad de datos
+  - Gobierno de datos dice quien es el responsable de ellos, quien puede acceder
+    y a qué cosas. Debe garantizar la calidad de los datos, que es una medida
+    que determina que tan adecuados están los datos a su uso.
+- Qué es falsa sumarización y qué nivel de aislamiento se necesita en sql para evitarlas
+
+  ```
+  T1      T2
+  X-=N
+          read X
+          read Y
+  Y+=N
+          return x+y -> falsa sumarización!
+  ```
+
+  - El más alto: serializable
+- Que es árbol de decisión y dar un ejemplo
+  - Es un método de aprendizaje supervisado, de data mining
+- Que dice el teorema CAP y relacionarlo con ACID
+  - La relación con ACID es que en él se elige consistencia sobre disponibilidad.
+- Por qué en No Sql se necesita la consistencia eventual
+  - Porque se sacrifica para poder proveer disponibilidad y tolerancia a las
+    particiones.
+- Qué es open data y sus características principales
+  - Datos abiertos provistos por diferentes organismos como empresas
+- Qué es una ontología y dar un ejemplo
+  - ?
+- Diferencia entre datos estructurados y datos semi-estructurados
+  - Datos estructurados son como XML o JSON que tienen cierta estructura, pero
+    no es tan rígida como los estructurados en las bases relacionales.
+- Tipos de fragmentación que puede haber en una base distribuida y dar ejemplos
+  - Horizontal (sharding)
+    - Ej: por pais
+  - Vertical (por columna). Hay que duplicar la PK
+    - Ej: ?
+
+## Final 13/12/19 (Cecilia)
+
+- Enunciar los métodos para resolver un JOIN y explicar uno de ellos.
+  - Los operadores que se pueden usar para resolver un join son
+    - Block nested loop join (BNLJ)
+      - R |x| S y no tiene índices para ninguna de las dos tablas. Recorre todas
+        las filas de R, y para cada una recorre todas las de S.
+    - Index nested loop join (INLJ)
+      - R |x| S pero tiene índice para S. Recorre todas las filas de R, y para
+        cada una indexa en el índice de S.
+    - Merge join
+      - Ordena y después hace un merge
+    - Hash match
+- Mencione y explique dos diferencias entre OLTP y OLAP.
+  - OLTP: ONline transaction processing. Procesamiento online de transacciones,
+    son operaciones con menos filas y que se usan para procesar el negocio
+    transaccional
+  - OLAP: analytical, se usa para hacer análisis de datos y asistir en la toma
+    de decisiones.
+- ¿Cuáles son las 3 "Vs" de Big Data? Explicarlas brevemente.
+  - Volumen: hay muchos datos para tratar
+  - Veracidad: calidad de los datos, es muy mala
+  - Variabilidad: están en muchos formatos diferentes
+  - Valor: cómo le puedo sacar valor a tantos datos? data mining
+  - Velocidad: el volumen incrementa muy rápido
+- ¿Cuándo se dice que una transacción "lee" de otra? ¿Cómo se relaciona con la recuperabilidad de los schedules?
+  - Una transacción lee de otra cuando lee un item que la otra escribió
+  - Un schedule es recuperable cuando cada transacción hace commit luego de
+    todas las transacciones de las que leyó (porque puede hacer abort en
+    cascada)
+- ¿Cuándo se utilizan las entidades débiles en un DER? Dar un ejemplo.
+  - Las entidades débiles son una herramienta de modelado que permite modelar
+    una entidad pero mostrar que no podría existir sin otra. Por ejemplo, copa
+   fútbol y tipo de copa. El tipo de copa es una entidad débil de copa, está en
+   su esencia y no podría existir sin ella.
+  - No se identifican por si solas, sino que la PK está compuesta con la PK de
+    la entidad fuerte de la que son débil.
+    > En este sentido, es medio raro que tipo copa sea una tabla a parte.
+- Diferencia entre integración de datos e intercambio de datos.
+  - No se
+- ¿Cuál es la principal diferencia entre el DBA y el administrador de datos?
+  - Tiene que ver con la independencia física (el salto del almacenamiento
+    físico de bajo nivel y las tablas (conceptual)).
+  - El DBA es el administrador de la base de datos en sí, es el que conoce los
+    detalles del motor y el lenguaje de consultas.
+  - El administrador de datos está un nivel más arriba, es el que se encarga de
+    organizar los datos de la organización para luego persistirlos en una DB.
+- ¿Qué es el gobierno de datos? ¿Cómo se relaciona con la calidad de datos?
+  - El gobierno de datos determina quien tiene acceso a los datos y quien los
+    provee. Debería asegurar la calidad de los datos, que es la adecuación de
+    los datos a su uso
+- Explicar la UNDO rule. ¿Por qué es importante?
+  - Dice que si un item fue escrito por una transacción commiteada, y ahora
+    tiene que ser escrito por otra, el valor previo debe estar persistido en el
+    log (porque sino, si la otra transacción falla, no se puede recuperar el
+    valor previo).
+  - Es importante para que funcione correctamente UNDO en logging.
+- ¿Qué optimizaciones puede hacer una base de datos paralela al recibir una query?
+  - Para dividir el trabajo de la query entre procesadores tiene dos opciones:
+    intra o inter operation parallelism
+  - Intra (dentro): divide las diferentes sub operaciones del AR de la query
+    entre los distintos procesadores (join, selection, projection, etc.)
+  - Inter (entre): repartir el query entero a un procesador? (no me queda claro este)
+- ¿Cuándo se dice que una base de datos distribuida es homogénea?
+  - Cuando cada nodo usa el mismo motor de bd (DBMS)
+- ¿Cuál es la función del scheduler?
+  - Es como un scheduler del SO pero de transacciones y sus operaciones. Tiene
+    que garantizar seriabilidad para que no haya problemas de concurrencia.
+- Mencione un nivel de aislamiento de SQL para transacciones. ¿Qué implica?
+  - Los niveles de aislamiento definen el grado con el que la transacción tiene
+    que ser aislada del comportamiento de otras
+- ¿Cuáles son los permisos que se le puede asignar a un usuario sobre una tabla de la base de datos?
+  - ???
+- ¿Qué es el teorema CAP?
+  - Es un teorema que muestra que tradeoffs pueden ser tomados en el diseño de
+    bases de datos distribuidas. Un sistema de almacenamiento distribuido solo
+    puede cumplir 2/3 de
+  
+  - Consistency: cada read recibe el último write o un error
+  - Availability: los requests no reciben error
+  - Partition tolerance: si se cae un nodo de la red o sube la latencia, el
+    sistema no retorna errores.
+- ¿Qué propiedades debe cumplir un conjunto de atributos para ser una clave candidata?
+  - Debe ser una super clave minimal
+  - Una superclave es aquella que identifica de forma única a las tuplas de una
+    relación. Es decir, si tienen los atributos que forman parte de la
+    superclave iguales, entonces el resto también lo son.
+- ¿Qué propiedades son deseables en una descomposición de una relación?
+  - SPI (Sin pérdida de información) y SPDF (Sin pérdida de dependencias funcionales)
+- ¿Una relación que está en 2FN está también en 3FN? Justificar.
+  - No, 2FN pide que esté en 1FN y que todos los atributos *no primos* dependan
+    solo de la clave primaria completa. Por otro lado, 3 FN pide que no haya
+    dependencias funcionales transitivas desde la PK para attrs no primos
+
+    Por ej. una relación
+
+    A, B, C, D
+    con PK = (A, B)
+    DFs = {AB -> C, C -> D}
+    estaria en 2FN pero no 3FN, porque tenemos C -> D en donde C no es SC y D no
+    es primo (se podría mover C -> D a otra relación)
+- Enunciar los axiomas de Armstrong.
+  - Son reglas que permiten clausurar un conjunto de dependencias funcionales,
+    infiriendo nuevas a partir de las existentes.
+    - Reflexiva: si X contiene a Y, entonces X -> Y
+    - Incremento: X -> Y implica XZ -> YZ para cualquier Z
+    - Transitiva: X -> Y e Y -> Z implica X -> Z
+  - Corolarios
+    - descomposición o proyección: X -> YZ implica X -> Y
+    - unión o aditiva: X -> Y e X -> Z implican X -> YZ
+    - pseudotrans: X -> Y e WY -> Z implican WX -> Z
+
 ## Clase
 
 - Olap vs OLTP

@@ -436,7 +436,7 @@ Formas normales:
   - X es SK de R
   - A es atributo primo de R
 
-  (B -> A es trivial si B es un subconj de attrs de A)
+  (B -> A es trivial si A es un subconj de attrs de B)
 
   Siempre se puede llevar a una relación a 3FN SPI SPDF
 
@@ -604,7 +604,7 @@ El optimizador realiza las siguientes tareas,
 Para armar distintos planes de ejecución, usa propiedades de AR como
 conmutatividad. Hay también varias heurísticas,
 
-- resolver selecciones y proyecciones lo más cerca posible de lash ojas
+- resolver selecciones y proyecciones lo más cerca posible de las hojas
 - Convertir los productos cartesianos en joins
 - Resolver primero los selects más selectivos (que filtran más)
 - Tomar en cuenta los índices existentes
@@ -822,6 +822,10 @@ Niveles de aislamiento:
 
 ![](img/trx/isolation-levels.png)
 
+- Read commited (solo se lee de transacciones commiteadas)
+- Repeatable reads
+- Serializable
+
 ## Recuperación (Logging)
 
 El **recovery manager** debe llevar registro del inicio y fin de las
@@ -838,9 +842,21 @@ El recovery tiene que asegurar atomicidad, consistencia y durabilidad
 Tipos de recovery manager
 
 - Undo
+  - Undo rule: si el disco contiene el último valor commiteado de X, antes de
+    reemplazarlo con un valor que no tiene commit hay que preservar el valor
+    original
 - Redo
+  - Redo rule: Antes de que una trx haga commit, los valores que escribió para
+    cada data item deben ser almacenados en disco.
 - Undo-Redo
 - No undo - No redo
+
+Garbage collection rule: Una entrada [Ti, x, V] puede ser eliminada del log
+solamente si
+
+- Ti aborto
+- Ti hizo commit, pero hay otra transacción que hizo commit que escribió x
+  después de T (V no es el último valor commiteado de x)
 
 Puede haber *checkpoints*
 
