@@ -31,9 +31,10 @@ o mixtos.)
 
   Están diseñados para mejorar la performance de queries críticas, frecuentes y
   caras. Tiene la misma estructura de árbol B, pero las hojas no contienen las
-  filas, solamente la info de la clave del índice (para poder hacer seek) + la
-  clustered index key (para poder ir ahí a buscar las rows, asumiendo que la
-  tabla es b tree) + columnas extra que agregamos con INCLUDE (por conveniencia)
+  filas, solamente la info de la clave del índice cluster (para poder hacer
+  seek) + la clustered index key (para poder ir ahí a buscar las rows, asumiendo
+  que la tabla es b tree) + columnas extra que agregamos con INCLUDE (por
+  conveniencia)
 
   La estructura es similar a un clustered index, pero las hojas incluyen el
   valor de la clave (para poder hacer seek en el índice) y el row id (para poder
@@ -44,7 +45,6 @@ o mixtos.)
 
   - En heap tables representa la ubicación física del a página
   - Para tablas con clustered index, representa el clustered index key de la fila.
-
 
 Tipos de acceso a datos en índice:
 
